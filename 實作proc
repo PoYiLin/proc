@@ -1,0 +1,60 @@
+//proc的讀寫功能 (讀:cat  寫:echo)
+//撰寫ifxmips_ppa_datapath_vr9_e5.c這隻code來實現proc讀寫
+//   8/28
+
+#define MAX_LEN       4096
+static char *info;
+static int write_index;
+static int read_index;
+
+//寫proc
+ssize_t proc_write_hello(struct file *file, const char *buf, unsigned long count, void *data)
+{
+
+	int capacity = (MAX_LEN-write_index)+1;
+    if (count > capacity)
+    {
+        printk(KERN_INFO "No space to write in Toby!\n");
+        return -1;
+    }
+    
+	if (copy_from_user( &info[write_index], buf, count ))
+  {
+      return -2;
+  }
+
+  write_index += count;
+  info[write_index-1] = 0;
+  return count;
+}
+
+// 讀proc
+static int proc_read_hello(char *page, char **start, off_t off, int count, int *eof, void *data)
+{
+	int len;
+    if (off > 0)
+    {
+      *eof = 1;
+		  return 0;
+	  }
+if (read_index >= write_index)
+    read_index = 0;								
+len = sprintf(page, "%s\n", &info[read_index]);
+read_index += len;
+     return len;
+}
+//    8/28
+
+	
+	
+	//   8/28 寫在ppa_proc_reg這個function (練習用)
+	info = (char *)vmalloc( MAX_LEN );
+	
+	memset( info, 0, MAX_LEN );
+	write_index = 0;
+    read_index = 0;
+  test  = create_proc_entry("Toby",0644,NULL);
+    test->read_proc  = proc_read_hello;
+    test->write_proc = proc_write_hello;
+    printk(KERN_INFO "Toby created.\n");
+	//    8/28
